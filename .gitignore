@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenv / IDE
+.venv/
+.idea/
+
+# Project runtime artifacts
+models/
+logs/
+configs/state.yaml
+datasets/
+
+# OS
+.DS_Store
