@@ -67,3 +67,20 @@ class Detection:
     @property
     def area(self) -> int:
         return max(0, self.x2 - self.x1) * max(0, self.y2 - self.y1)
+
+
+_ACTION_KINDS = frozenset({"move", "click", "key", "wait"})
+
+
+@dataclass(frozen=True, slots=True)
+class ActionStep:
+    kind: str
+    x: int = 0
+    y: int = 0
+    button: str = "left"
+    key: str = ""
+    duration_s: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.kind not in _ACTION_KINDS:
+            raise ValueError(f"ActionStep.kind must be one of {sorted(_ACTION_KINDS)}")
