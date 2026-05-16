@@ -10,9 +10,15 @@ SmartUIBot framework (later slices add decision engine, input, memory).
 
 On first run (no `configs/state.yaml`) the ROI selector overlay appears —
 drag a rectangle to choose the capture region; it persists across restarts.
-The control bar offers Start/Stop, Pause/Resume, a confidence slider, model
-hot-reload, and re-select ROI — all at runtime, no restart. Defaults
-(model, confidence, target FPS, hotkeys) live in `configs/default.yaml`.
+The control bar offers Start/Stop, Pause/Resume, **Arm/Disarm**, a confidence
+slider, model hot-reload, and re-select ROI — all at runtime.
+
+**Closed loop (Slice B):** when **Armed**, the bot decides via a utility
+policy over `configs/behaviors.yaml` (game-agnostic; edit labels to match
+your trained model) and performs humanized mouse/keyboard input. It starts
+**Disarmed**; nothing is injected until you arm it. Emergency-stop and the
+screen-corner fail-safe immediately disarm and abort. **Single-player /
+offline use only.**
 
 ## Architecture
 See `docs/superpowers/specs/2026-05-16-smartuibot-slice-a-design.md`.

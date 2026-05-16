@@ -26,3 +26,17 @@ Restart the terminal after granting permissions.
 ## Emergency stop
 Default `<ctrl>+<alt>+q` (configurable in `configs/default.yaml`) cleanly
 stops all services.
+
+## Input automation (Slice B)
+The bot can move the mouse and press keys when **Armed** (it starts
+Disarmed). macOS requires **Accessibility** permission (System Settings →
+Privacy & Security → Accessibility) for the input backend in addition to
+Screen Recording. Windows uses `pydirectinput` (installed automatically on
+Windows only). Behaviors are defined in `configs/behaviors.yaml`; tune
+motion/safety in the `input:` block of `configs/default.yaml`
+(`max_actions_per_second`, `roi_confine`, `start_armed`).
+
+**Safety:** keep `roi_confine: true` so clicks stay inside the selected
+region; the emergency-stop hotkey and moving the cursor to a screen corner
+both immediately disarm and abort. Use only on single-player / offline games
+you are authorized to automate.
