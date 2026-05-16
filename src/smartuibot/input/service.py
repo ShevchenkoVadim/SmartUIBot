@@ -77,6 +77,10 @@ class ActionService(Service):
             self._exec_step(step, req.roi)
             if self._min_interval:
                 time.sleep(self._min_interval)
+        if self._aborted():
+            self._bus.publish(ActionAborted(
+                behavior_name=req.behavior_name, reason="disarmed"))
+            return
         self._bus.publish(ActionCompleted(behavior_name=req.behavior_name))
 
     def _exec_step(self, step: ActionStep, roi: ROI) -> None:

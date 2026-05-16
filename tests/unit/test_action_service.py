@@ -89,3 +89,40 @@ def test_disarm_mid_action_aborts_and_stops_injecting() -> None:
     time.sleep(0.2)
     svc.stop()
     assert aborted and aborted[0].reason == "disarmed"
+
+
+def test_disarm_during_last_step_emits_aborted_not_completed() -> None:
+    bus = EventBus()
+    backend = RecordingInputBackend()
+    mode = ModeFSM()
+    mode.arm()
+    completed: list[ActionCompleted] = []
+    aborted: list[ActionAborted] = []
+    bus.subscribe(ActionCompleted, completed.append)
+    bus.subscribe(ActionAborted, aborted.append)
+    # single (last) step is a long move; disarm while its bezier loop runs
+    svc = ActionService(bus=bus, backend=backend, mode=mode,
+                         motion=_params(),
+                         max_actions_per_second=1000.0, roi_confine=True,
+                         rng=random.Random(0))
+
+    # Patch _exec_step to disarm while it "runs" (simulating disarm during bezier loop)
+    original_exec_step = svc._exec_step
+    def patched_exec_step(step, roi):
+        # Simulate step execution then disarm mid-way
+        time.sleep(0.02)
+        mode.disarm()
+        time.sleep(0.02)
+        # When called, _aborted() is now true, so if this was a move,
+        # the real _exec_step would return early from bezier loop
+        original_exec_step(step, roi)
+    svc._exec_step = patched_exec_step
+
+    svc.start()
+    bus.publish(ActionRequested(behavior_name="solo",
+                                steps=(ActionStep(kind="move", x=10, y=10),),
+                                roi=_ROI, priority=1.0))
+    time.sleep(0.15)  # let it run and complete
+    svc.stop()
+    assert not completed, "must NOT report completed when aborted mid-last-step"
+    assert aborted and aborted[0].reason == "disarmed"
