@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import threading
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
 
 
-class LatestQueue[T]:
+class LatestQueue(Generic[T]):
     """Holds at most one item. put() overwrites any pending item so consumers
     always see the freshest value (drop-old backpressure)."""
 
