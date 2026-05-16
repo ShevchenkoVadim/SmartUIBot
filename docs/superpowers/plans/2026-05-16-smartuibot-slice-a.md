@@ -548,15 +548,15 @@ Expected: FAIL — `ModuleNotFoundError: smartuibot.core.latest_queue`
 
 ```python
 # src/smartuibot/core/latest_queue.py
+# NOTE: Use PEP 695 generic syntax (`class LatestQueue[T]:`). The project's
+# ruff UP ruleset (UP046) rejects `class X(Generic[T])`. Function-level
+# TypeVar (as in event_bus.py) remains fine.
 from __future__ import annotations
 
 import threading
-from typing import Generic, TypeVar
-
-T = TypeVar("T")
 
 
-class LatestQueue(Generic[T]):
+class LatestQueue[T]:
     """Holds at most one item. put() overwrites any pending item so consumers
     always see the freshest value (drop-old backpressure)."""
 
@@ -2180,7 +2180,7 @@ def test_container_wires_pipeline_with_injected_fakes(tmp_path):
         config=cfg,
         roi=ROI(monitor=1, x=0, y=0, width=16, height=16),
         capture_backend=FakeCaptureBackend(),
-        detector=FakeDetector(scripted=[[("enemy", 0.9, 0, 0, 4, 4)]] * 20),
+        detector=FakeDetector(scripted=[[("enemy", 0.9, 0, 0, 4, 4)]] * 40),
     )
     out: list[DetectionsReady] = []
     container.bus.subscribe(DetectionsReady, out.append)
@@ -2395,7 +2395,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PyQt6.QtCore import QPoint, QRect, Qt
-from PyQt6.QtGui import QColor, QPainter, QPen
+from PyQt6.QtGui import QColor, QMouseEvent, QPainter, QPaintEvent, QPen
 from PyQt6.QtWidgets import QWidget
 
 from smartuibot.core.types import ROI
@@ -2423,22 +2423,31 @@ class ROISelectorOverlay(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowOpacity(0.35)
 
-    def mousePressEvent(self, event) -> None:  # noqa: ANN001
-        self._origin = event.pos()
-        self._current = event.pos()
+    # NOTE: PyQt6 stubs type these handler params as `... | None` and mypy
+    # --strict enforces override compatibility, so annotate with `| None` and
+    # guard. Use event.position().toPoint() (Qt6 API; pos() is deprecated).
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+        if event is None:
+            return
+        self._origin = event.position().toPoint()
+        self._current = event.position().toPoint()
         self.update()
 
-    def mouseMoveEvent(self, event) -> None:  # noqa: ANN001
-        self._current = event.pos()
+    def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
+        if event is None:
+            return
+        self._current = event.position().toPoint()
         self.update()
 
-    def mouseReleaseEvent(self, event) -> None:  # noqa: ANN001
+    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
+        if event is None:
+            return
         if self._origin is not None:
-            roi = rect_to_roi(self._origin, event.pos(), self._monitor)
+            roi = rect_to_roi(self._origin, event.position().toPoint(), self._monitor)
             self._on_selected(roi)
         self.close()
 
-    def paintEvent(self, event) -> None:  # noqa: ANN001
+    def paintEvent(self, event: QPaintEvent | None) -> None:
         if self._origin is None or self._current is None:
             return
         painter = QPainter(self)
