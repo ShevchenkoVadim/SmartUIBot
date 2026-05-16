@@ -24,5 +24,3 @@ def resolve_input_backend_name(configured: str, os_name: str | None = None) -> s
     if configured != "auto":
         return configured
     return "pydirectinput" if os_name == "windows" else "pynput"
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
