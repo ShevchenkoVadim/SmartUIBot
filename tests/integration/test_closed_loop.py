@@ -21,7 +21,9 @@ from tests.fakes.input import RecordingInputBackend
 _ROI = ROI(monitor=1, x=0, y=0, width=16, height=16)
 
 
-def _wire(mode: ModeFSM, backend: RecordingInputBackend) -> tuple[object, ...]:
+def _wire(
+    mode: ModeFSM, backend: RecordingInputBackend
+) -> tuple[EventBus, CaptureService, DetectionService, DecisionService, ActionService]:
     bus = EventBus()
     behaviors = (Behavior(name="attack",
                           condition=Condition(labels=frozenset({"enemy"}),
@@ -53,10 +55,10 @@ def test_perceive_decide_act_closed_loop_headless() -> None:
     started: list[ActionStarted] = []
     bus.subscribe(ActionStarted, started.append)
     for s in (action, decision, detection, capture):
-        s.start()  # type: ignore[attr-defined]
+        s.start()
     time.sleep(0.8)
     for s in (capture, detection, decision, action):
-        s.stop()  # type: ignore[attr-defined]
+        s.stop()
     assert started, "closed loop did not produce an action"
     assert ("click", ("left",)) in backend.calls
     assert ("move_to", (8, 8)) in backend.calls
@@ -68,11 +70,11 @@ def test_disarm_halts_injection() -> None:
     backend = RecordingInputBackend()
     bus, capture, detection, decision, action = _wire(mode, backend)
     for s in (action, decision, detection, capture):
-        s.start()  # type: ignore[attr-defined]
+        s.start()
     time.sleep(0.2)
     mode.disarm()
     n_after_disarm = len(backend.calls)
     time.sleep(0.3)
     for s in (capture, detection, decision, action):
-        s.stop()  # type: ignore[attr-defined]
+        s.stop()
     assert len(backend.calls) - n_after_disarm <= 3
