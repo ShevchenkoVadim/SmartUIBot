@@ -35,6 +35,6 @@ packages = ["smartuibot"]
 mypy_path = "src"
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 markers = ["model: requires downloading YOLO weights (skipped offline)"]
