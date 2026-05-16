@@ -33,7 +33,8 @@ def _svc(bus: EventBus, mode: ModeFSM, backend: RecordingInputBackend) -> Action
 def test_executes_click_at_roi_offset_screen_coords() -> None:
     bus = EventBus()
     backend = RecordingInputBackend()
-    mode = ModeFSM(); mode.arm()
+    mode = ModeFSM()
+    mode.arm()
     started: list[ActionStarted] = []
     completed: list[ActionCompleted] = []
     bus.subscribe(ActionStarted, started.append)
@@ -57,7 +58,8 @@ def test_executes_click_at_roi_offset_screen_coords() -> None:
 def test_roi_confine_clamps_out_of_bounds_target() -> None:
     bus = EventBus()
     backend = RecordingInputBackend()
-    mode = ModeFSM(); mode.arm()
+    mode = ModeFSM()
+    mode.arm()
     svc = _svc(bus, mode, backend)
     svc.start()
     bus.publish(ActionRequested(
@@ -73,7 +75,8 @@ def test_roi_confine_clamps_out_of_bounds_target() -> None:
 def test_disarm_mid_action_aborts_and_stops_injecting() -> None:
     bus = EventBus()
     backend = RecordingInputBackend()
-    mode = ModeFSM(); mode.arm()
+    mode = ModeFSM()
+    mode.arm()
     aborted: list[ActionAborted] = []
     bus.subscribe(ActionAborted, aborted.append)
     steps = tuple(ActionStep(kind="wait", duration_s=0.05) for _ in range(20))
