@@ -34,6 +34,10 @@ strict = true
 packages = ["smartuibot"]
 mypy_path = "src"
 
+[[tool.mypy.overrides]]
+module = ["mss.*", "ultralytics.*", "cv2.*", "pynput.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 testpaths = ["tests"]
