@@ -59,6 +59,9 @@ class UiController:
         if self._roi_factory is None:
             return
         self._overlay = self._roi_factory(self.apply_roi)
+        # NOT showFullScreen(): on macOS that enters a native fullscreen Space
+        # with a black backing, so the translucent overlay renders black. The
+        # overlay sizes itself to the screen, so a plain show() covers it.
         self._overlay.show()
 
     def is_armed(self) -> bool:

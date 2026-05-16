@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import signal
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import yaml
@@ -14,7 +15,7 @@ from smartuibot.core.types import ROI
 from smartuibot.input.backend import InputBackend
 from smartuibot.platform_support.detect import resolve_backend_name, resolve_input_backend_name
 from smartuibot.ui.debug_window import DebugWindow
-from smartuibot.vision.capture.backend import CaptureBackend
+from smartuibot.vision.capture.backend import CaptureBackend, Monitor
 from smartuibot.vision.detect.detector import Detector
 
 _DEFAULT_ROI = ROI(monitor=1, x=100, y=100, width=640, height=480)
@@ -90,9 +91,18 @@ def main() -> int:
 
     controller = UiController(container=container, state_path=state_path,
                               save_roi=save_roi)
-    controller.set_roi_selector_factory(
-        lambda on_selected: ROISelectorOverlay(
-            monitor=container.config.capture.monitor, on_selected=on_selected))
+    def _make_roi_overlay(
+        on_selected: Callable[[ROI], None],
+    ) -> ROISelectorOverlay:
+        mon_index = container.config.capture.monitor
+        monitors = container.capture.list_monitors()
+        monitor = next((m for m in monitors if m.index == mon_index), None)
+        if monitor is None:
+            monitor = monitors[0] if monitors else Monitor(
+                index=mon_index, x=0, y=0, width=1920, height=1080)
+        return ROISelectorOverlay(monitor=monitor, on_selected=on_selected)
+
+    controller.set_roi_selector_factory(_make_roi_overlay)
 
     debug = DebugWindow(bus=container.bus,
                         preview_max_width=container.config.ui.preview_max_width)

@@ -39,3 +39,13 @@ def test_set_roi_changes_frame_size_without_restart() -> None:
     time.sleep(0.1)
     svc.stop()
     assert frames[-1].frame.image.shape == (15, 20, 3)
+
+
+def test_list_monitors_delegates_to_backend() -> None:
+    bus = EventBus()
+    backend = FakeCaptureBackend(width=800, height=600)
+    svc = CaptureService(
+        backend, bus,
+        ROI(monitor=1, x=0, y=0, width=10, height=10), target_fps=120)
+    assert svc.list_monitors() == backend.list_monitors()
+    assert svc.list_monitors()[0].width == 800

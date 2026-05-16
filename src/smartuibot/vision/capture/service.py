@@ -9,7 +9,7 @@ from smartuibot.core.events import FpsTick, FrameCaptured
 from smartuibot.core.fps import FpsMeter
 from smartuibot.core.service import Service
 from smartuibot.core.types import ROI, Frame
-from smartuibot.vision.capture.backend import CaptureBackend
+from smartuibot.vision.capture.backend import CaptureBackend, Monitor
 
 
 class CaptureService(Service):
@@ -31,6 +31,9 @@ class CaptureService(Service):
     def set_roi(self, roi: ROI) -> None:
         with self._roi_lock:
             self._roi = roi
+
+    def list_monitors(self) -> list[Monitor]:
+        return self._backend.list_monitors()
 
     def run_once(self) -> None:
         start = time.monotonic()
