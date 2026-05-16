@@ -10,6 +10,7 @@ dependencies = [
     "PyQt6>=6.7",
     "ultralytics>=8.3",
     "pynput>=1.7",
+    "pydirectinput>=1.0; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
@@ -35,7 +36,7 @@ packages = ["smartuibot"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["mss.*", "ultralytics.*", "cv2.*", "pynput.*"]
+module = ["mss.*", "ultralytics.*", "cv2.*", "pynput.*", "pydirectinput.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

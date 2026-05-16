@@ -17,3 +17,10 @@ def resolve_backend_name(configured: str, os_name: str | None = None) -> str:
     if configured != "auto":
         return configured
     return "dxcam" if os_name == "windows" else "mss"
+
+
+def resolve_input_backend_name(configured: str, os_name: str | None = None) -> str:
+    os_name = os_name or current_os()
+    if configured != "auto":
+        return configured
+    return "pydirectinput" if os_name == "windows" else "pynput"

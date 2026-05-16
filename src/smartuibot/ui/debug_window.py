@@ -17,7 +17,15 @@ from PyQt6.QtWidgets import (
 )
 
 from smartuibot.core.event_bus import EventBus
-from smartuibot.core.events import DetectionsReady, FpsTick, LogRecord
+from smartuibot.core.events import (
+    ActionAborted,
+    ActionCompleted,
+    ActionStarted,
+    DetectionsReady,
+    FpsTick,
+    LogRecord,
+    ModeChanged,
+)
 from smartuibot.core.types import Detection
 
 
@@ -48,20 +56,27 @@ class DebugWindow(QWidget):
         self._events: queue.Queue[object] = queue.Queue()
         self._fps: dict[str, float] = {"capture": 0.0, "detection": 0.0}
         self._det_count = 0
+        self._mode = "disarmed"
+        self._actions: list[str] = []
 
         self._preview = QLabel("waiting for frames…")
         self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._mode_label = QLabel("mode: disarmed")
+        self._action_list = QListWidget()
         self._fps_label = QLabel(self.fps_text())
         self._table = QListWidget()
         self._logs = QPlainTextEdit()
         self._logs.setReadOnly(True)
 
         right = QVBoxLayout()
+        right.addWidget(self._mode_label)
         right.addWidget(self._fps_label)
         right.addWidget(QLabel("Detections:"))
         right.addWidget(self._table)
         right.addWidget(QLabel("Logs:"))
         right.addWidget(self._logs)
+        right.addWidget(QLabel("Actions:"))
+        right.addWidget(self._action_list)
         root = QHBoxLayout(self)
         root.addWidget(self._preview, stretch=3)
         right_box = QWidget()
@@ -71,6 +86,10 @@ class DebugWindow(QWidget):
         bus.subscribe(DetectionsReady, self._events.put)
         bus.subscribe(FpsTick, self._events.put)
         bus.subscribe(LogRecord, self._events.put)
+        bus.subscribe(ModeChanged, self._events.put)
+        bus.subscribe(ActionStarted, self._events.put)
+        bus.subscribe(ActionCompleted, self._events.put)
+        bus.subscribe(ActionAborted, self._events.put)
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._drain)
@@ -78,6 +97,12 @@ class DebugWindow(QWidget):
 
     def detection_count(self) -> int:
         return self._det_count
+
+    def mode_text(self) -> str:
+        return self._mode
+
+    def action_count(self) -> int:
+        return len(self._actions)
 
     def fps_text(self) -> str:
         return (
@@ -100,6 +125,18 @@ class DebugWindow(QWidget):
                 self._logs.appendPlainText(
                     f"[{ev.level}] {ev.logger}: {ev.message}"
                 )
+            elif isinstance(ev, ModeChanged):
+                self._mode = ev.mode
+                self._mode_label.setText(f"mode: {ev.mode}")
+            elif isinstance(ev, ActionStarted):
+                self._actions.append(f"▶ {ev.behavior_name}")
+                self._action_list.addItem(self._actions[-1])
+            elif isinstance(ev, ActionCompleted):
+                self._actions.append(f"✓ {ev.behavior_name}")
+                self._action_list.addItem(self._actions[-1])
+            elif isinstance(ev, ActionAborted):
+                self._actions.append(f"✗ {ev.behavior_name} ({ev.reason})")
+                self._action_list.addItem(self._actions[-1])
 
     def _on_detections(self, ev: DetectionsReady) -> None:
         self._det_count = len(ev.detections)

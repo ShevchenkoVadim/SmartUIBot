@@ -61,6 +61,16 @@ class UiController:
         self._overlay = self._roi_factory(self.apply_roi)
         self._overlay.show()
 
+    def is_armed(self) -> bool:
+        return bool(self.container.mode.is_armed())
+
+    def toggle_arm(self) -> str:
+        if self.container.mode.is_armed():
+            self.container.mode.disarm()
+            return "disarmed"
+        self.container.mode.arm()
+        return "armed"
+
 
 class ControlBar(QWidget):
     """Buttons + confidence slider wired to a UiController."""
@@ -85,14 +95,20 @@ class ControlBar(QWidget):
         self.pause_btn.clicked.connect(self._on_pause)
         roi_btn.clicked.connect(self._c.request_roi_selection)
         reload_btn.clicked.connect(lambda: self._c.reload_model(self._model_path))
+        self.arm_btn = QPushButton("Arm")
+        self.arm_btn.clicked.connect(self._on_arm)
         self.confidence_slider.valueChanged.connect(
             lambda v: self._c.set_confidence(v / 100.0))
 
         layout = QHBoxLayout(self)
-        for w in (start_btn, stop_btn, self.pause_btn, roi_btn, reload_btn,
+        for w in (start_btn, stop_btn, self.pause_btn, self.arm_btn, roi_btn, reload_btn,
                   QLabel("conf"), self.confidence_slider):
             layout.addWidget(w)
 
     def _on_pause(self) -> None:
         state = self._c.toggle_pause()
         self.pause_btn.setText("Resume" if state == "paused" else "Pause")
+
+    def _on_arm(self) -> None:
+        state = self._c.toggle_arm()
+        self.arm_btn.setText("Disarm" if state == "armed" else "Arm")

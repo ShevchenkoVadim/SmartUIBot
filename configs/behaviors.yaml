@@ -1,0 +1,28 @@
+# Game-agnostic example behaviors. Adapt label names to your trained model.
+behaviors:
+  - name: attack_enemy
+    base_utility: 5.0
+    cooldown_s: 0.4
+    condition: {labels: [enemy], min_confidence: 0.5}
+    steps:
+      - {kind: move, target: detection}
+      - {kind: click, target: detection, button: left}
+  - name: collect_reward
+    base_utility: 3.0
+    cooldown_s: 1.0
+    condition: {labels: [reward], min_confidence: 0.5}
+    steps:
+      - {kind: click, target: detection, button: left}
+  - name: close_popup
+    base_utility: 8.0
+    cooldown_s: 0.5
+    condition: {labels: [popup, close_button], min_confidence: 0.5}
+    steps:
+      - {kind: click, target: detection, button: left}
+  - name: idle
+    base_utility: 0.1
+    cooldown_s: 0.0
+    condition: {labels: [enemy, reward, popup], min_confidence: 0.0, min_count: 0}
+    scale_by_confidence: false
+    steps:
+      - {kind: wait, duration_s: 0.5}
