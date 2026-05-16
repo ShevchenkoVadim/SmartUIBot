@@ -11,7 +11,8 @@ from PyQt6.QtWidgets import QApplication
 from smartuibot.core.config import AppConfig, load_config
 from smartuibot.core.container import AppContainer
 from smartuibot.core.types import ROI
-from smartuibot.platform_support.detect import resolve_backend_name
+from smartuibot.input.backend import InputBackend
+from smartuibot.platform_support.detect import resolve_backend_name, resolve_input_backend_name
 from smartuibot.ui.debug_window import DebugWindow
 from smartuibot.vision.capture.backend import CaptureBackend
 from smartuibot.vision.detect.detector import Detector
@@ -42,6 +43,17 @@ def _make_capture_backend(config: AppConfig) -> CaptureBackend:
     return MssBackend()
 
 
+def _make_input_backend(config: AppConfig) -> InputBackend:
+    name = resolve_input_backend_name(config.input.backend)
+    if name == "pydirectinput":
+        from smartuibot.input.pydirectinput_backend import PyDirectInputBackend
+
+        return PyDirectInputBackend()
+    from smartuibot.input.pynput_backend import PynputBackend
+
+    return PynputBackend()
+
+
 def _make_detector(config: AppConfig) -> Detector:
     from smartuibot.vision.detect.yolo import Yolo11Detector
 
@@ -60,6 +72,7 @@ def build_real_container(config_path: Path, state_path: Path) -> AppContainer:
         roi=roi,
         capture_backend=_make_capture_backend(config),
         detector=_make_detector(config),
+        input_backend=_make_input_backend(config),
     )
 
 
@@ -95,6 +108,7 @@ def main() -> int:
     shell.show()
 
     def shutdown(*_a: object) -> None:
+        container.mode.disarm()
         container.stop()
         app.quit()
 
