@@ -5,7 +5,7 @@ from typing import Any
 
 import numpy as np
 
-from smartuibot.core.types import Detection
+from smartuibot.core.types import Detection, Image
 
 
 def _results_to_detections(results: list[Any], conf_threshold: float) -> list[Detection]:
@@ -49,7 +49,7 @@ class Yolo11Detector:
             pass
         return "cpu"
 
-    def infer(self, image: np.ndarray) -> list[Detection]:
+    def infer(self, image: Image) -> list[Detection]:
         results = self._model.predict(
             image, device=self._device, conf=self._confidence, verbose=False)
         return _results_to_detections(results, self._confidence)

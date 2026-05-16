@@ -5,6 +5,10 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
+
+# HxWx3 BGR uint8 image array (the shape every capture backend returns).
+Image = npt.NDArray[np.uint8]
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +47,7 @@ class ROI:
 
 @dataclass(slots=True)
 class Frame:
-    image: np.ndarray  # HxWx3 BGR uint8
+    image: Image  # HxWx3 BGR uint8
     timestamp: float
     seq: int
     roi: ROI

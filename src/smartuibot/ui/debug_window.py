@@ -4,7 +4,6 @@ from __future__ import annotations
 import queue
 
 import cv2
-import numpy as np
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
@@ -26,10 +25,10 @@ from smartuibot.core.events import (
     LogRecord,
     ModeChanged,
 )
-from smartuibot.core.types import Detection
+from smartuibot.core.types import Detection, Image
 
 
-def draw_boxes(image: np.ndarray, detections: list[Detection]) -> np.ndarray:
+def draw_boxes(image: Image, detections: list[Detection]) -> Image:
     out = image.copy()
     for d in detections:
         cv2.rectangle(out, (d.x1, d.y1), (d.x2, d.y2), (0, 255, 0), 2)

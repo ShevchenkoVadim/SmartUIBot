@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from smartuibot.core.types import ROI
+from smartuibot.core.types import ROI, Image
 from smartuibot.vision.capture.backend import Monitor
 
 
@@ -24,10 +24,10 @@ class MssBackend:
         return out
 
     @staticmethod
-    def _to_bgr(bgra: np.ndarray) -> np.ndarray:
+    def _to_bgr(bgra: Image) -> Image:
         return np.ascontiguousarray(bgra[:, :, :3])
 
-    def grab(self, roi: ROI) -> np.ndarray:
+    def grab(self, roi: ROI) -> Image:
         mon = self._sct.monitors[roi.monitor]
         region = {
             "left": mon["left"] + roi.x,
