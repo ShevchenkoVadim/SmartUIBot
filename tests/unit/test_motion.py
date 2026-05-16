@@ -46,5 +46,3 @@ def test_maybe_overshoot_returns_point_or_none_seeded() -> None:
     r2 = maybe_overshoot((100, 100), p, random.Random(0))
     assert r1 == r2  # deterministic
     assert r1 is None or (isinstance(r1, tuple) and len(r1) == 2)
-
-# Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>

@@ -61,5 +61,3 @@ def maybe_overshoot(
     ox = end[0] + rng.randint(-6, 6)
     oy = end[1] + rng.randint(-6, 6)
     return (ox, oy)
-
-# Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
