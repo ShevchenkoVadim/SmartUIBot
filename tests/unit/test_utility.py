@@ -64,3 +64,12 @@ def test_anti_loop_penalizes_repeated_behavior() -> None:
                 anti_loop_window=10, anti_loop_max_repeats=2)
     result = p.choose(ws)
     assert result is not None and result[0].name == "rare"
+
+
+def test_choose_is_deterministic_with_same_seed() -> None:
+    ws = WorldState(detections=(_det("enemy", 0.9),), roi=_ROI, tick=1, recent=())
+    r1 = _policy((_b("a", "enemy", 3.0), _b("b", "enemy", 3.0))).choose(ws)
+    r2 = _policy((_b("a", "enemy", 3.0), _b("b", "enemy", 3.0))).choose(ws)
+    assert r1 is not None and r2 is not None
+    assert r1[0].name == r2[0].name        # same behavior chosen
+    assert r1[2] == r2[2]                   # identical score (seeded jitter)

@@ -23,7 +23,7 @@ class WorldState:
             key=lambda d: d.confidence,
             reverse=True,
         )
-        if len(matches) < min_count:
+        if not matches or len(matches) < min_count:
             return None
         return matches[0]
 

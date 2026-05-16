@@ -29,3 +29,12 @@ def test_tracker_increments_tick_and_tracks_recent() -> None:
     assert ws2.recent_count("attack", window=10) == 1
     assert ws2.recent_count("attack", window=0) == 0
 
+
+def test_best_match_min_count_zero_no_matches_returns_none_not_indexerror() -> None:
+    ws = WorldState(detections=(_det("ally", 0.9),), roi=_ROI, tick=1, recent=())
+    # idle-style condition: min_count=0, labels don't match anything present
+    assert ws.best_match(frozenset({"enemy"}), min_confidence=0.0, min_count=0) is None
+    # also no detections at all
+    ws2 = WorldState(detections=(), roi=_ROI, tick=1, recent=())
+    assert ws2.best_match(frozenset({"enemy"}), 0.0, 0) is None
+
