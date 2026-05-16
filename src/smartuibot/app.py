@@ -64,14 +64,35 @@ def build_real_container(config_path: Path, state_path: Path) -> AppContainer:
 
 
 def main() -> int:
+    from PyQt6.QtWidgets import QVBoxLayout
+    from PyQt6.QtWidgets import QWidget as _QWidget
+
+    from smartuibot.ui.controls import ControlBar, UiController
+    from smartuibot.ui.roi_selector import ROISelectorOverlay
+
     config_path = Path("configs/default.yaml")
     state_path = Path("configs/state.yaml")
     app = QApplication(sys.argv)
     container = build_real_container(config_path, state_path)
-    window = DebugWindow(bus=container.bus,
-                         preview_max_width=container.config.ui.preview_max_width)
-    window.resize(1100, 700)
-    window.show()
+
+    controller = UiController(container=container, state_path=state_path,
+                              save_roi=save_roi)
+    controller.set_roi_selector_factory(
+        lambda on_selected: ROISelectorOverlay(
+            monitor=container.config.capture.monitor, on_selected=on_selected))
+
+    debug = DebugWindow(bus=container.bus,
+                        preview_max_width=container.config.ui.preview_max_width)
+    bar = ControlBar(controller=controller,
+                     model_path=container.config.detection.model)
+
+    shell = _QWidget()
+    shell.setWindowTitle("SmartUIBot")
+    shell_layout = QVBoxLayout(shell)
+    shell_layout.addWidget(bar)
+    shell_layout.addWidget(debug)
+    shell.resize(1100, 760)
+    shell.show()
 
     def shutdown(*_a: object) -> None:
         container.stop()
@@ -80,17 +101,17 @@ def main() -> int:
     signal.signal(signal.SIGINT, shutdown)
     app.aboutToQuit.connect(container.stop)
 
-    # Emergency-stop global hotkey (listener only — never injects input).
     try:
         from pynput import keyboard
 
-        hk = keyboard.GlobalHotKeys(
-            {container.config.hotkeys.emergency_stop: shutdown})
+        hk = keyboard.GlobalHotKeys({container.config.hotkeys.emergency_stop: shutdown})
         hk.start()
     except Exception:  # noqa: BLE001 - hotkey is best-effort
         pass
 
     container.start()
+    if not state_path.exists():
+        controller.request_roi_selection()  # first run: ask the user to pick a region
     return app.exec()
 
 
