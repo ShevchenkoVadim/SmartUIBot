@@ -40,3 +40,9 @@ motion/safety in the `input:` block of `configs/default.yaml`
 region; the emergency-stop hotkey and moving the cursor to a screen corner
 both immediately disarm and abort. Use only on single-player / offline games
 you are authorized to automate.
+
+## OCR (optional, off by default)
+Text-in-detection-box OCR uses PaddleOCR. Install the extra:
+`python -m pip install -e ".[ocr]"`. On Intel x86_64 macOS, paddlepaddle
+ships only older CPU wheels and inference is slow — keep `ocr.labels` small.
+Enable via `ocr.enabled: true` in `configs/default.yaml`.

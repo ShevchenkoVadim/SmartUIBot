@@ -28,7 +28,7 @@
 платформы и параметры настройки описаны в [SETUP.md](SETUP.md).
 
 ## Тестирование
-    pytest -q -m "not model"     # быстро, headless, без GPU/экрана
+    pytest -q -m "not model and not ocr"   # быстро, headless, без GPU/экрана/OCR
     pytest -q -m model           # скачивает yolo11n.pt, реальная инференция
 
 ---
@@ -157,6 +157,17 @@ capture), чтобы каждый потребитель был подписан
   ([`vision/detect/smoothing.py`](src/smartuibot/vision/detect/smoothing.py),
   `src/smartuibot/vision/detect/smoothing.py:7`) держит метку видимой ещё
   `smoothing_frames` кадров после её исчезновения, уменьшая мерцание.
+
+## Этап 2.5 — Обогащение OCR
+
+`OcrService` ([`vision/ocr/service.py`](src/smartuibot/vision/ocr/service.py))
+подписывается на `DetectionsReady`, вырезает рамки, чьи метки входят в
+`ocr.labels`, распознаёт текст через Protocol `OcrEngine` (`PaddleOcrEngine`,
+ленивый импорт `paddleocr`), прикрепляет его к `Detection` и перепубликует
+`DetectionsEnriched` (потребляется решением + отладкой). При `ocr.enabled:
+false` (по умолчанию) работает как сквозной пропуск без накладных расходов.
+Поведения могут сопоставлять распознанный текст через условие `text_any`
+(подстрока без учёта регистра).
 
 ## Этап 3 — Принятие решений
 

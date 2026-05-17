@@ -25,7 +25,7 @@ abort. Platform permissions and tuning knobs are documented in
 [SETUP.md](SETUP.md).
 
 ## Testing
-    pytest -q -m "not model"     # fast, headless, no GPU/screen
+    pytest -q -m "not model and not ocr"   # fast, headless, no GPU/screen/OCR
     pytest -q -m model           # downloads yolo11n.pt, runs real inference
 
 ---
@@ -151,6 +151,16 @@ by the UI slider), smooths the result, and publishes `DetectionsReady`.
   ([`vision/detect/smoothing.py`](src/smartuibot/vision/detect/smoothing.py),
   `src/smartuibot/vision/detect/smoothing.py:7`) keeps a label visible for
   `smoothing_frames` extra frames after it disappears, reducing flicker.
+
+## Stage 2.5 — OCR enrichment
+
+`OcrService` ([`vision/ocr/service.py`](src/smartuibot/vision/ocr/service.py))
+subscribes to `DetectionsReady`, crops boxes whose label is in `ocr.labels`,
+recognizes text via the `OcrEngine` Protocol (`PaddleOcrEngine`, lazy
+`paddleocr` import), attaches it to the `Detection`, and republishes
+`DetectionsEnriched` (consumed by decision + debug). Pure pass-through when
+`ocr.enabled` is false (the default). Behaviors can then match recognized text
+via a `text_any` condition (case-insensitive substring).
 
 ## Stage 3 — Decision
 

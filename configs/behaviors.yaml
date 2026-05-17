@@ -13,10 +13,13 @@ behaviors:
     condition: {labels: [reward], min_confidence: 0.5}
     steps:
       - {kind: click, target: detection, button: left}
+  # text_any requires ocr.enabled: true and the label listed in ocr.labels;
+  # otherwise Detection.text is None and the text condition never matches.
   - name: close_popup
     base_utility: 8.0
     cooldown_s: 0.5
-    condition: {labels: [popup, close_button], min_confidence: 0.5}
+    condition: {labels: [popup, close_button], min_confidence: 0.5,
+                text_any: [close, x, ok]}
     steps:
       - {kind: click, target: detection, button: left}
   - name: idle

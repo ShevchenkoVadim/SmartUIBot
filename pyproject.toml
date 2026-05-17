@@ -15,6 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-qt>=4.4", "ruff>=0.6", "mypy>=1.11", "types-PyYAML>=6.0"]
+ocr = ["paddleocr>=2.7", "paddlepaddle>=2.5"]
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -42,4 +43,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 testpaths = ["tests"]
-markers = ["model: requires downloading YOLO weights (skipped offline)"]
+markers = [
+    "model: requires downloading YOLO weights (skipped offline)",
+    "ocr: requires PaddleOCR + paddlepaddle installed (skipped by default)",
+]
