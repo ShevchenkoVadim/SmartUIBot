@@ -56,3 +56,47 @@ def test_invalid_confidence_rejected(tmp_path: Path) -> None:
     """)
     with pytest.raises(ValueError):
         load_config(default)
+
+
+def test_ocr_defaults_when_block_absent(tmp_path: Path) -> None:
+    default = _write(tmp_path, "d.yaml", """
+        capture: {backend: auto, target_fps: 60, monitor: 1}
+        detection: {
+            model: yolo11n.pt, confidence: 0.35, device: auto,
+            tracking: false, smoothing_frames: 3}
+        ui: {preview_max_width: 960}
+        logging: {level: INFO, dir: logs}
+        hotkeys: {emergency_stop: "<ctrl>+<alt>+q"}
+    """)
+    cfg = load_config(default)
+    assert cfg.ocr.enabled is False
+    assert cfg.ocr.labels == ()
+    assert cfg.ocr.lang == "en"
+    assert cfg.ocr.min_confidence == 0.5
+
+
+def test_ocr_block_parsed_and_validated(tmp_path: Path) -> None:
+    base = """
+        capture: {backend: auto, target_fps: 60, monitor: 1}
+        detection: {
+            model: yolo11n.pt, confidence: 0.35, device: auto,
+            tracking: false, smoothing_frames: 3}
+        ui: {preview_max_width: 960}
+        logging: {level: INFO, dir: logs}
+        hotkeys: {emergency_stop: "<ctrl>+<alt>+q"}
+    """
+    good = _write(tmp_path, "g.yaml", base + """
+        ocr: {enabled: true, labels: [button, popup], lang: en,
+              min_confidence: 0.6}
+    """)
+    cfg = load_config(good)
+    assert cfg.ocr.enabled is True
+    assert cfg.ocr.labels == ("button", "popup")
+    assert cfg.ocr.lang == "en"
+    assert cfg.ocr.min_confidence == 0.6
+
+    bad = _write(tmp_path, "b.yaml", base + """
+        ocr: {enabled: true, labels: [], lang: en, min_confidence: 9.0}
+    """)
+    with pytest.raises(ValueError):
+        load_config(bad)

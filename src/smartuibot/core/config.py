@@ -65,6 +65,14 @@ class InputConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class OcrConfig:
+    enabled: bool
+    labels: tuple[str, ...]
+    lang: str
+    min_confidence: float
+
+
+@dataclass(frozen=True, slots=True)
 class AppConfig:
     capture: CaptureConfig
     detection: DetectionConfig
@@ -76,6 +84,8 @@ class AppConfig:
     input: InputConfig = field(
         default_factory=lambda: InputConfig("auto", 8.0, True, False, 24, 2,
                                             0.08, 0.22, 0.03, 0.09, 0.15))
+    ocr: OcrConfig = field(
+        default_factory=lambda: OcrConfig(False, (), "en", 0.5))
     behaviors_path: str = "configs/behaviors.yaml"
 
     def __post_init__(self) -> None:
@@ -89,6 +99,8 @@ class AppConfig:
             raise ValueError("decision.tick_hz must be positive")
         if not 0.0 <= self.input.overshoot_prob <= 1.0:
             raise ValueError("input.overshoot_prob must be in [0, 1]")
+        if not 0.0 <= self.ocr.min_confidence <= 1.0:
+            raise ValueError("ocr.min_confidence must be in [0, 1]")
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -117,5 +129,7 @@ def load_config(default_path: Path, user_path: Path | None = None) -> AppConfig:
         input=InputConfig(**data["input"]) if "input" in data
             else InputConfig("auto", 8.0, True, False, 24, 2, 0.08, 0.22,
                              0.03, 0.09, 0.15),
+        ocr=OcrConfig(**{**data["ocr"], "labels": tuple(data["ocr"].get("labels", []))})
+            if "ocr" in data else OcrConfig(False, (), "en", 0.5),
         behaviors_path=str(data.get("behaviors_path", "configs/behaviors.yaml")),
     )

@@ -33,4 +33,9 @@ input:
   keystroke_min_s: 0.03
   keystroke_max_s: 0.09
   overshoot_prob: 0.15
+ocr:
+  enabled: false       # opt-in: heavy optional dep + CPU cost
+  labels: [button, popup, dialog]
+  lang: en
+  min_confidence: 0.5
 behaviors_path: configs/behaviors.yaml
