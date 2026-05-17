@@ -23,6 +23,12 @@ class DetectionsReady(Event):
 
 
 @dataclass(frozen=True, slots=True)
+class DetectionsEnriched(Event):
+    frame: Frame
+    detections: tuple[Detection, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class FpsTick(Event):
     name: str
     fps: float
