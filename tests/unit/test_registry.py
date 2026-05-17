@@ -49,3 +49,33 @@ def test_rejects_nonpositive_utility(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError):
         load_behaviors(p)
+
+
+def test_parses_text_any_normalized(tmp_path: Path) -> None:
+    p = tmp_path / "b.yaml"
+    p.write_text(
+        "behaviors:\n - name: close\n   base_utility: 1.0\n"
+        "   condition: {labels: [popup], text_any: ['  Close ', 'OK']}\n"
+        "   steps:\n    - {kind: click, target: detection}\n"
+    )
+    bs = load_behaviors(p)
+    assert bs[0].condition.text_any == frozenset({"close", "ok"})
+
+
+def test_text_any_absent_defaults_empty(tmp_path: Path) -> None:
+    p = tmp_path / "b.yaml"
+    p.write_text(
+        "behaviors:\n - name: x\n   base_utility: 1.0\n"
+        "   condition: {labels: [a]}\n   steps: []\n"
+    )
+    assert load_behaviors(p)[0].condition.text_any == frozenset()
+
+
+def test_rejects_empty_text_any_entry(tmp_path: Path) -> None:
+    p = tmp_path / "b.yaml"
+    p.write_text(
+        "behaviors:\n - name: x\n   base_utility: 1.0\n"
+        "   condition: {labels: [a], text_any: ['ok', '  ']}\n   steps: []\n"
+    )
+    with pytest.raises(ValueError):
+        load_behaviors(p)

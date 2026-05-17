@@ -31,10 +31,23 @@ def load_behaviors(path: Path) -> tuple[Behavior, ...]:
     out: list[Behavior] = []
     for raw in data.get("behaviors", []):
         cond_raw = raw["condition"]
+        raw_text_any = cond_raw.get("text_any", [])
+        if not isinstance(raw_text_any, list):
+            raise ValueError(
+                f"behavior {raw.get('name')!r}: text_any must be a list")
+        text_any: set[str] = set()
+        for entry in raw_text_any:
+            norm = " ".join(str(entry).split()).lower()
+            if not norm:
+                raise ValueError(
+                    f"behavior {raw.get('name')!r}: text_any entries must "
+                    f"be non-empty")
+            text_any.add(norm)
         cond = Condition(
             labels=frozenset(str(x) for x in cond_raw["labels"]),
             min_confidence=float(cond_raw.get("min_confidence", 0.0)),
             min_count=int(cond_raw.get("min_count", 1)),
+            text_any=frozenset(text_any),
         )
         steps = tuple(_build_step(s) for s in raw.get("steps", []))
         base_utility = float(raw["base_utility"])
