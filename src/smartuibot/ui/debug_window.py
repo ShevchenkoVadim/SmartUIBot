@@ -20,7 +20,7 @@ from smartuibot.core.events import (
     ActionAborted,
     ActionCompleted,
     ActionStarted,
-    DetectionsReady,
+    DetectionsEnriched,
     FpsTick,
     LogRecord,
     ModeChanged,
@@ -55,6 +55,7 @@ class DebugWindow(QWidget):
         self._events: queue.Queue[object] = queue.Queue()
         self._fps: dict[str, float] = {"capture": 0.0, "detection": 0.0}
         self._det_count = 0
+        self._det_texts: list[str] = []
         self._mode = "disarmed"
         self._actions: list[str] = []
 
@@ -82,7 +83,7 @@ class DebugWindow(QWidget):
         right_box.setLayout(right)
         root.addWidget(right_box, stretch=2)
 
-        bus.subscribe(DetectionsReady, self._events.put)
+        bus.subscribe(DetectionsEnriched, self._events.put)
         bus.subscribe(FpsTick, self._events.put)
         bus.subscribe(LogRecord, self._events.put)
         bus.subscribe(ModeChanged, self._events.put)
@@ -96,6 +97,9 @@ class DebugWindow(QWidget):
 
     def detection_count(self) -> int:
         return self._det_count
+
+    def last_detection_texts(self) -> list[str]:
+        return self._det_texts
 
     def mode_text(self) -> str:
         return self._mode
@@ -115,7 +119,7 @@ class DebugWindow(QWidget):
                 ev = self._events.get_nowait()
             except queue.Empty:
                 break
-            if isinstance(ev, DetectionsReady):
+            if isinstance(ev, DetectionsEnriched):
                 self._on_detections(ev)
             elif isinstance(ev, FpsTick):
                 self._fps[ev.name] = ev.fps
@@ -137,12 +141,15 @@ class DebugWindow(QWidget):
                 self._actions.append(f"✗ {ev.behavior_name} ({ev.reason})")
                 self._action_list.addItem(self._actions[-1])
 
-    def _on_detections(self, ev: DetectionsReady) -> None:
+    def _on_detections(self, ev: DetectionsEnriched) -> None:
         self._det_count = len(ev.detections)
+        self._det_texts = [d.text for d in ev.detections if d.text]
         self._table.clear()
         for d in ev.detections:
+            txt = f'  "{d.text}"' if d.text else ""
             self._table.addItem(
-                f"{d.label}  {d.confidence:.2f}  [{d.x1},{d.y1},{d.x2},{d.y2}]"
+                f"{d.label}  {d.confidence:.2f}{txt}"
+                f"  [{d.x1},{d.y1},{d.x2},{d.y2}]"
             )
         rendered = draw_boxes(ev.frame.image, list(ev.detections))
         rgb = cv2.cvtColor(rendered, cv2.COLOR_BGR2RGB)
