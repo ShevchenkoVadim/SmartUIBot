@@ -34,7 +34,7 @@ abort. Platform permissions and tuning knobs are documented in
 
 ## The pipeline at a glance
 
-Four worker services, each on its own thread, communicate **only** through a
+Five worker services, each on its own thread, communicate **only** through a
 synchronous in-process event bus. Data flows one direction; backpressure is
 "drop old, keep newest" so the bot always acts on the freshest frame.
 
@@ -43,9 +43,11 @@ synchronous in-process event bus. Data flows one direction; backpressure is
                                                        ▼
                                           DetectionService  (YOLO11 inference)
                                                        │
-                                                       ├─DetectionsReady──> DebugWindow (live preview)
-                                                       ▼
-                                          DecisionService   (utility policy, ARMED only)
+                                                       └─DetectionsReady──> OcrService  (text enrichment)
+                                                                                         │
+                                                       ┌─DetectionsEnriched─────────────┤
+                                                       ▼                                 ▼
+                                          DecisionService   (utility policy, ARMED only) DebugWindow (live preview)
                                                        │
                                                        ├─ActionRequested──┐
                                                        ▼                   ▼
@@ -66,7 +68,7 @@ Everything is wired in one place:
 [`core/container.py`](src/smartuibot/core/container.py). `AppContainer`
 (`src/smartuibot/core/container.py:26`) takes the config plus the three
 platform adapters (capture backend, detector, input backend) as constructor
-arguments and builds every singleton: the bus, the four services, the mode
+arguments and builds every singleton: the bus, the five services, the mode
 FSM, the utility policy, and the watchdog. `start()`
 (`src/smartuibot/core/container.py:80`) launches workers in reverse pipeline
 order (action → decision → detection → capture) so every consumer is
@@ -94,7 +96,7 @@ runs `run_once()` in a loop (`src/smartuibot/core/service.py:52`), updates a
 process.
 
 The `Watchdog` ([`core/watchdog.py`](src/smartuibot/core/watchdog.py),
-`src/smartuibot/core/watchdog.py:15`) supervises all four services: it polls
+`src/smartuibot/core/watchdog.py:15`) supervises all five services: it polls
 `is_alive` every second and restarts a dead worker with exponential backoff,
 escalating to a fatal `ServiceError` after `max_retries`
 (`src/smartuibot/core/watchdog.py:45`).
@@ -107,7 +109,7 @@ calls subscribers inline; a subscriber exception is logged and swallowed
 (`src/smartuibot/core/event_bus.py:33`) so one bad handler can never break the
 publisher or other subscribers. All message types are frozen dataclasses in
 [`core/events.py`](src/smartuibot/core/events.py): `FrameCaptured`,
-`DetectionsReady`, `ActionRequested`, `ActionStarted/Completed/Aborted`,
+`DetectionsReady`, `DetectionsEnriched`, `ActionRequested`, `ActionStarted/Completed/Aborted`,
 `ModeChanged`, `FpsTick`, `LogRecord`, `ServiceError`, `StateChanged`.
 
 Shared data shapes live in

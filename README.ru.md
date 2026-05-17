@@ -37,7 +37,7 @@
 
 ## Конвейер в общих чертах
 
-Четыре сервиса-воркера, каждый в своём потоке, общаются **только** через
+Пять сервисов-воркеров, каждый в своём потоке, общаются **только** через
 синхронную внутрипроцессную шину событий. Данные текут в одном направлении;
 backpressure — «отбросить старое, оставить самое свежее», поэтому бот всегда
 работает с самым свежим кадром.
@@ -47,9 +47,11 @@ backpressure — «отбросить старое, оставить самое 
                                                       ▼
                                          DetectionService  (инференция YOLO11)
                                                       │
-                                                      ├─DetectionsReady──> DebugWindow (живой превью)
-                                                      ▼
-                                         DecisionService   (политика полезности, только ARMED)
+                                                      └─DetectionsReady──> OcrService  (обогащение текстом)
+                                                                                        │
+                                                      ┌─DetectionsEnriched─────────────┤
+                                                      ▼                                 ▼
+                                         DecisionService   (политика полезности, только ARMED) DebugWindow (живой превью)
                                                       │
                                                       ├─ActionRequested──┐
                                                       ▼                   ▼
@@ -71,7 +73,7 @@ FPS); он просто пропускает устаревшие кадры.
 [`core/container.py`](src/smartuibot/core/container.py). `AppContainer`
 (`src/smartuibot/core/container.py:26`) принимает конфиг плюс три платформенных
 адаптера (бэкенд захвата, детектор, бэкенд ввода) как аргументы конструктора и
-создаёт каждый синглтон: шину, четыре сервиса, FSM режима, политику полезности
+создаёт каждый синглтон: шину, пять сервисов, FSM режима, политику полезности
 и watchdog. `start()` (`src/smartuibot/core/container.py:80`) запускает
 воркеров в обратном порядке конвейера (action → decision → detection →
 capture), чтобы каждый потребитель был подписан раньше, чем его производитель
@@ -98,7 +100,7 @@ capture), чтобы каждый потребитель был подписан
 роняет процесс.
 
 `Watchdog` ([`core/watchdog.py`](src/smartuibot/core/watchdog.py),
-`src/smartuibot/core/watchdog.py:15`) надзирает за всеми четырьмя сервисами:
+`src/smartuibot/core/watchdog.py:15`) надзирает за всеми пятью сервисами:
 он опрашивает `is_alive` раз в секунду и перезапускает мёртвый воркер с
 экспоненциальной задержкой, эскалируя до фатального `ServiceError` после
 `max_retries` (`src/smartuibot/core/watchdog.py:45`).
@@ -112,7 +114,7 @@ capture), чтобы каждый потребитель был подписан
 обработчик никогда не сломает производителя или других подписчиков. Все типы
 сообщений — это frozen-датаклассы в
 [`core/events.py`](src/smartuibot/core/events.py): `FrameCaptured`,
-`DetectionsReady`, `ActionRequested`, `ActionStarted/Completed/Aborted`,
+`DetectionsReady`, `DetectionsEnriched`, `ActionRequested`, `ActionStarted/Completed/Aborted`,
 `ModeChanged`, `FpsTick`, `LogRecord`, `ServiceError`, `StateChanged`.
 
 Общие формы данных живут в
