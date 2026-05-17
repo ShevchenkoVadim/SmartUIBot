@@ -1416,8 +1416,10 @@ existing `dev` entry):
 ```toml
 ocr = ["paddleocr>=2.7", "paddlepaddle>=2.5"]
 ```
-Add `paddleocr.*` and `paddle.*` to the existing mypy overrides module list
-so it reads:
+The `paddleocr.*` / `paddle.*` mypy `ignore_missing_imports` override was
+already added in Task 4 (moved earlier to avoid an unused-`type: ignore`
+under strict `warn_unused_ignores`). **Do not re-add it.** Just verify the
+existing `[[tool.mypy.overrides]]` block already reads:
 ```toml
 [[tool.mypy.overrides]]
 module = ["mss.*", "ultralytics.*", "cv2.*", "pynput.*", "pydirectinput.*", "paddleocr.*", "paddle.*"]
