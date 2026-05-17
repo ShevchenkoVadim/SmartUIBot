@@ -27,3 +27,24 @@ def test_detection_box_area_and_validation() -> None:
     assert d.area == 40
     with pytest.raises(ValueError):
         Detection(label="x", confidence=1.5, class_id=0, x1=0, y1=0, x2=1, y2=1)
+
+
+def test_detection_defaults_have_no_text() -> None:
+    from smartuibot.core.types import Detection
+
+    d = Detection(label="b", confidence=0.5, class_id=0, x1=0, y1=0, x2=2, y2=2)
+    assert d.text is None
+    assert d.text_confidence == 0.0
+
+
+def test_detection_with_text_and_validation() -> None:
+    import pytest
+
+    from smartuibot.core.types import Detection
+
+    d = Detection(label="b", confidence=0.5, class_id=0, x1=0, y1=0, x2=2,
+                  y2=2, text="Close", text_confidence=0.9)
+    assert d.text == "Close" and d.text_confidence == 0.9
+    with pytest.raises(ValueError):
+        Detection(label="b", confidence=0.5, class_id=0, x1=0, y1=0, x2=2,
+                  y2=2, text="x", text_confidence=1.5)

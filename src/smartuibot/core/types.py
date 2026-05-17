@@ -63,10 +63,14 @@ class Detection:
     x2: int
     y2: int
     track_id: int | None = None
+    text: str | None = None
+    text_confidence: float = 0.0
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError("confidence must be in [0, 1]")
+        if not 0.0 <= self.text_confidence <= 1.0:
+            raise ValueError("text_confidence must be in [0, 1]")
 
     @property
     def area(self) -> int:
