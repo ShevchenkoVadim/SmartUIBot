@@ -21,6 +21,7 @@ from smartuibot.vision.capture.backend import CaptureBackend
 from smartuibot.vision.capture.service import CaptureService
 from smartuibot.vision.detect.detector import Detector
 from smartuibot.vision.detect.service import DetectionService
+from smartuibot.vision.ocr.service import OcrService
 
 
 class AppContainer:
@@ -49,6 +50,8 @@ class AppContainer:
             detector=detector, bus=self.bus,
             smoothing_frames=config.detection.smoothing_frames,
             confidence=config.detection.confidence)
+        self.ocr = OcrService(engine=None, bus=self.bus, labels=frozenset(),
+                              min_confidence=0.0, enabled=False)
         self.mode = ModeFSM()
         if config.input.start_armed:
             self.mode.arm()
@@ -74,12 +77,13 @@ class AppContainer:
             max_actions_per_second=ic.max_actions_per_second,
             roi_confine=ic.roi_confine, rng=random.Random(dc.rng_seed + 1))
         self.watchdog = Watchdog(
-            [self.capture, self.detection, self.decision, self.action],
+            [self.capture, self.detection, self.ocr, self.decision, self.action],
             bus=self.bus)
 
     def start(self) -> None:
         self.action.start()
         self.decision.start()
+        self.ocr.start()
         self.detection.start()
         self.capture.start()
         self.watchdog.start()
@@ -89,5 +93,6 @@ class AppContainer:
         self.mode.disarm()
         self.capture.stop()
         self.detection.stop()
+        self.ocr.stop()
         self.decision.stop()
         self.action.stop()

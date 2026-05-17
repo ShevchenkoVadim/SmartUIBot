@@ -9,7 +9,7 @@ from smartuibot.ai.mode import ModeFSM
 from smartuibot.ai.utility import UtilityPolicy
 from smartuibot.ai.world_state import WorldStateTracker
 from smartuibot.core.event_bus import EventBus
-from smartuibot.core.events import ActionRequested, DetectionsReady
+from smartuibot.core.events import ActionRequested, DetectionsEnriched
 from smartuibot.core.service import Service
 from smartuibot.core.types import ROI, Detection
 
@@ -30,9 +30,9 @@ class DecisionService(Service):
         self._period = 1.0 / tick_hz
         self._lock = threading.Lock()
         self._latest: tuple[tuple[Detection, ...], ROI] | None = None
-        bus.subscribe(DetectionsReady, self._on_detections)
+        bus.subscribe(DetectionsEnriched, self._on_detections)
 
-    def _on_detections(self, event: DetectionsReady) -> None:
+    def _on_detections(self, event: DetectionsEnriched) -> None:
         with self._lock:
             self._latest = (event.detections, event.frame.roi)
 

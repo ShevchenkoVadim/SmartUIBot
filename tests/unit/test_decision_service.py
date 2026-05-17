@@ -10,7 +10,7 @@ from smartuibot.ai.service import DecisionService
 from smartuibot.ai.utility import UtilityPolicy
 from smartuibot.ai.world_state import WorldStateTracker
 from smartuibot.core.event_bus import EventBus
-from smartuibot.core.events import ActionRequested, DetectionsReady
+from smartuibot.core.events import ActionRequested, DetectionsEnriched
 from smartuibot.core.types import ROI, Detection, Frame
 
 _ROI = ROI(monitor=1, x=0, y=0, width=8, height=8)
@@ -45,7 +45,7 @@ def test_no_actions_when_disarmed() -> None:
     mode = ModeFSM()  # DISARMED
     svc = _svc(bus, mode)
     svc.start()
-    bus.publish(DetectionsReady(frame=_frame(), detections=(_enemy(),)))
+    bus.publish(DetectionsEnriched(frame=_frame(), detections=(_enemy(),)))
     time.sleep(0.15)
     svc.stop()
     assert out == []
@@ -59,7 +59,7 @@ def test_emits_action_when_armed() -> None:
     mode.arm()
     svc = _svc(bus, mode)
     svc.start()
-    bus.publish(DetectionsReady(frame=_frame(), detections=(_enemy(),)))
+    bus.publish(DetectionsEnriched(frame=_frame(), detections=(_enemy(),)))
     time.sleep(0.2)
     svc.stop()
     assert out
