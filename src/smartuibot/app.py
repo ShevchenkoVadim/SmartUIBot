@@ -1,6 +1,7 @@
 # src/smartuibot/app.py
 from __future__ import annotations
 
+import logging
 import signal
 import sys
 from collections.abc import Callable
@@ -17,6 +18,7 @@ from smartuibot.platform_support.detect import resolve_backend_name, resolve_inp
 from smartuibot.ui.debug_window import DebugWindow
 from smartuibot.vision.capture.backend import CaptureBackend, Monitor
 from smartuibot.vision.detect.detector import Detector
+from smartuibot.vision.ocr.engine import OcrEngine
 
 _DEFAULT_ROI = ROI(monitor=1, x=100, y=100, width=640, height=480)
 
@@ -65,6 +67,19 @@ def _make_detector(config: AppConfig) -> Detector:
     )
 
 
+def _make_ocr_engine(config: AppConfig) -> OcrEngine | None:
+    if not config.ocr.enabled:
+        return None
+    try:
+        from smartuibot.vision.ocr.paddle import PaddleOcrEngine
+
+        return PaddleOcrEngine(lang=config.ocr.lang)
+    except Exception:  # noqa: BLE001 - OCR is best-effort; degrade gracefully
+        logging.getLogger("smartuibot.ocr").warning(
+            "PaddleOCR unavailable; running with OCR disabled", exc_info=True)
+        return None
+
+
 def build_real_container(config_path: Path, state_path: Path) -> AppContainer:
     config = load_config(config_path)
     roi = load_or_default_roi(state_path)
@@ -74,6 +89,7 @@ def build_real_container(config_path: Path, state_path: Path) -> AppContainer:
         capture_backend=_make_capture_backend(config),
         detector=_make_detector(config),
         input_backend=_make_input_backend(config),
+        ocr_engine=_make_ocr_engine(config),
     )
 
 

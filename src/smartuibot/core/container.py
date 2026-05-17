@@ -21,6 +21,7 @@ from smartuibot.vision.capture.backend import CaptureBackend
 from smartuibot.vision.capture.service import CaptureService
 from smartuibot.vision.detect.detector import Detector
 from smartuibot.vision.detect.service import DetectionService
+from smartuibot.vision.ocr.engine import OcrEngine
 from smartuibot.vision.ocr.service import OcrService
 
 
@@ -35,6 +36,7 @@ class AppContainer:
         capture_backend: CaptureBackend,
         detector: Detector,
         input_backend: InputBackend | None = None,
+        ocr_engine: OcrEngine | None = None,
     ) -> None:
         if input_backend is None:
             from smartuibot.input.backend import NoOpInputBackend
@@ -50,8 +52,11 @@ class AppContainer:
             detector=detector, bus=self.bus,
             smoothing_frames=config.detection.smoothing_frames,
             confidence=config.detection.confidence)
-        self.ocr = OcrService(engine=None, bus=self.bus, labels=frozenset(),
-                              min_confidence=0.0, enabled=False)
+        self.ocr = OcrService(
+            engine=ocr_engine, bus=self.bus,
+            labels=frozenset(config.ocr.labels),
+            min_confidence=config.ocr.min_confidence,
+            enabled=config.ocr.enabled)
         self.mode = ModeFSM()
         if config.input.start_armed:
             self.mode.arm()
