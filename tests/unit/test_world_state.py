@@ -38,3 +38,31 @@ def test_best_match_min_count_zero_no_matches_returns_none_not_indexerror() -> N
     ws2 = WorldState(detections=(), roi=_ROI, tick=1, recent=())
     assert ws2.best_match(frozenset({"enemy"}), 0.0, 0) is None
 
+
+def _det_t(label: str, conf: float, text: str | None) -> Detection:
+    return Detection(label=label, confidence=conf, class_id=0, x1=0, y1=0,
+                     x2=10, y2=10, text=text)
+
+
+def test_best_match_text_any_substring_normalized() -> None:
+    ws = WorldState(
+        detections=(_det_t("button", 0.9, "  Close  Window "),),
+        roi=_ROI, tick=1, recent=())
+    assert ws.best_match(frozenset({"button"}), 0.0, 1,
+                         frozenset({"close window"})) is not None
+    assert ws.best_match(frozenset({"button"}), 0.0, 1,
+                         frozenset({"cancel"})) is None
+
+
+def test_best_match_text_any_empty_is_unconstrained() -> None:
+    ws = WorldState(detections=(_det_t("button", 0.9, None),),
+                    roi=_ROI, tick=1, recent=())
+    assert ws.best_match(frozenset({"button"}), 0.0, 1) is not None
+
+
+def test_best_match_none_text_never_matches_text_any() -> None:
+    ws = WorldState(detections=(_det_t("button", 0.9, None),),
+                    roi=_ROI, tick=1, recent=())
+    assert ws.best_match(frozenset({"button"}), 0.0, 1,
+                         frozenset({"close"})) is None
+

@@ -12,9 +12,11 @@ class Condition:
     labels: frozenset[str]
     min_confidence: float = 0.0
     min_count: int = 1
+    text_any: frozenset[str] = frozenset()
 
     def match(self, ws: WorldState) -> Detection | None:
-        return ws.best_match(self.labels, self.min_confidence, self.min_count)
+        return ws.best_match(self.labels, self.min_confidence,
+                             self.min_count, self.text_any)
 
 
 @dataclass(frozen=True, slots=True)

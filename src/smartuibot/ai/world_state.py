@@ -7,6 +7,10 @@ from dataclasses import dataclass
 from smartuibot.core.types import ROI, Detection
 
 
+def _normalize(s: str) -> str:
+    return " ".join(s.split()).lower()
+
+
 @dataclass(frozen=True, slots=True)
 class WorldState:
     detections: tuple[Detection, ...]
@@ -15,11 +19,18 @@ class WorldState:
     recent: tuple[tuple[str, int], ...]  # (behavior_name, tick), oldest first
 
     def best_match(
-        self, labels: frozenset[str], min_confidence: float, min_count: int
+        self,
+        labels: frozenset[str],
+        min_confidence: float,
+        min_count: int,
+        text_any: frozenset[str] = frozenset(),
     ) -> Detection | None:
         matches = sorted(
             (d for d in self.detections
-             if d.label in labels and d.confidence >= min_confidence),
+             if d.label in labels and d.confidence >= min_confidence
+             and (not text_any or (
+                 d.text is not None
+                 and any(n in _normalize(d.text) for n in text_any)))),
             key=lambda d: d.confidence,
             reverse=True,
         )

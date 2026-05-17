@@ -44,3 +44,16 @@ def test_behavior_is_frozen_value() -> None:
                  base_utility=2.0, cooldown_s=1.0,
                  steps=(BehaviorStep(kind="click", target="detection"),))
     assert b.name == "attack" and b.base_utility == 2.0 and b.scale_by_confidence is True
+
+
+def test_condition_text_any_filters_match() -> None:
+    d = _det("button", 0.9, (0, 0, 10, 10))
+    d = Detection(label=d.label, confidence=d.confidence, class_id=0,
+                  x1=0, y1=0, x2=10, y2=10, text="CLOSE")
+    ws = WorldState(detections=(d,), roi=_ROI, tick=1, recent=())
+    assert Condition(labels=frozenset({"button"}),
+                     text_any=frozenset({"close"})).match(ws) is not None
+    assert Condition(labels=frozenset({"button"}),
+                     text_any=frozenset({"buy"})).match(ws) is None
+    # default (no text_any) unchanged
+    assert Condition(labels=frozenset({"button"})).match(ws) is not None
