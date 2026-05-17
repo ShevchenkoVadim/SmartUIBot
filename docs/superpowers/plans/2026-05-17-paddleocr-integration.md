@@ -1264,18 +1264,31 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ### Task 11: Container + app wiring
 
+> **Plan revised after Task 9.** Task 9 already added a *minimal disabled
+> pass-through* `self.ocr = OcrService(engine=None, bus=self.bus,
+> labels=frozenset(), min_confidence=0.0, enabled=False)` to
+> `AppContainer.__init__` (between `self.detection` and `self.mode`),
+> already added `self.ocr` to the `Watchdog([...])` list (between
+> `self.detection` and `self.decision`), and already added `self.ocr.start()`
+> / `self.ocr.stop()` in the correct pipeline order. The `OcrService` import
+> already exists in `container.py`. So this task only adds the
+> **`ocr_engine` injection parameter** and replaces the hardcoded shim values
+> with **config-driven** ones, plus the `app.py` factory + wiring + tests. Do
+> NOT re-add the watchdog/start/stop wiring — verify it is already correct.
+
 **Files:**
 - Modify: `src/smartuibot/core/container.py`
 - Modify: `src/smartuibot/app.py`
 - Test: `tests/unit/test_container.py`
 
-- [ ] **Step 1: Append the failing test**
+- [ ] **Step 1: Append the failing tests**
 
 Add to the end of `tests/unit/test_container.py`:
 
 ```python
-def test_container_wires_ocr_passthrough_and_enriched(tmp_path: Path) -> None:
+def test_container_injects_ocr_engine_and_enriches(tmp_path: Path) -> None:
     from smartuibot.core.events import DetectionsEnriched
+    from tests.fakes.ocr import FakeOcrEngine
 
     default = tmp_path / "d.yaml"
     default.write_text(
@@ -1285,6 +1298,8 @@ def test_container_wires_ocr_passthrough_and_enriched(tmp_path: Path) -> None:
         "ui: {preview_max_width: 960}\n"
         "logging: {level: INFO, dir: " + str(tmp_path / 'logs') + "}\n"
         "hotkeys: {emergency_stop: \"<ctrl>+<alt>+q\"}\n"
+        "ocr: {enabled: true, labels: [enemy], lang: en, "
+        "min_confidence: 0.5}\n"
     )
     cfg = load_config(default)
     container = AppContainer(
@@ -1292,6 +1307,7 @@ def test_container_wires_ocr_passthrough_and_enriched(tmp_path: Path) -> None:
         roi=ROI(monitor=1, x=0, y=0, width=16, height=16),
         capture_backend=FakeCaptureBackend(),
         detector=FakeDetector(scripted=[[("enemy", 0.9, 0, 0, 4, 4)]] * 40),
+        ocr_engine=FakeOcrEngine("Hello", 0.9),
     )
     assert container.ocr in container.watchdog._services
     enriched: list[DetectionsEnriched] = []
@@ -1299,24 +1315,58 @@ def test_container_wires_ocr_passthrough_and_enriched(tmp_path: Path) -> None:
     container.start()
     time.sleep(0.3)
     container.stop()
-    assert enriched, "OcrService pass-through must still emit DetectionsEnriched"
+    assert enriched, "expected DetectionsEnriched to flow through the pipeline"
     assert enriched[-1].detections[0].label == "enemy"
-    assert enriched[-1].detections[0].text is None  # OCR disabled by default
+    assert enriched[-1].detections[0].text == "Hello"  # config-enabled + injected
+
+
+def test_container_ocr_disabled_by_default_passthrough(tmp_path: Path) -> None:
+    from smartuibot.core.events import DetectionsEnriched
+    from tests.fakes.ocr import FakeOcrEngine
+
+    default = tmp_path / "d.yaml"
+    default.write_text(
+        "capture: {backend: auto, target_fps: 120, monitor: 1}\n"
+        "detection: {model: yolo11n.pt, confidence: 0.3, device: cpu, "
+        "tracking: false, smoothing_frames: 1}\n"
+        "ui: {preview_max_width: 960}\n"
+        "logging: {level: INFO, dir: " + str(tmp_path / 'logs') + "}\n"
+        "hotkeys: {emergency_stop: \"<ctrl>+<alt>+q\"}\n"
+    )  # no ocr: block -> OcrConfig defaults (enabled=False)
+    cfg = load_config(default)
+    container = AppContainer(
+        config=cfg,
+        roi=ROI(monitor=1, x=0, y=0, width=16, height=16),
+        capture_backend=FakeCaptureBackend(),
+        detector=FakeDetector(scripted=[[("enemy", 0.9, 0, 0, 4, 4)]] * 40),
+        ocr_engine=FakeOcrEngine("Hello", 0.9),
+    )
+    enriched: list[DetectionsEnriched] = []
+    container.bus.subscribe(DetectionsEnriched, enriched.append)
+    container.start()
+    time.sleep(0.3)
+    container.stop()
+    assert enriched, "pass-through must still emit DetectionsEnriched"
+    assert enriched[-1].detections[0].label == "enemy"
+    assert enriched[-1].detections[0].text is None  # disabled -> no OCR
 ```
 
 - [ ] **Step 2: Run to verify failure**
 
 Run: `.venv/bin/python -m pytest tests/unit/test_container.py -q`
-Expected: FAIL — `AttributeError: 'AppContainer' object has no attribute 'ocr'`.
+Expected: FAIL — `TypeError: AppContainer.__init__() got an unexpected
+keyword argument 'ocr_engine'` (the injection parameter does not exist yet;
+the shim added in Task 9 hardcodes `engine=None`/`enabled=False`).
 
-- [ ] **Step 3: Wire `OcrService` into the container**
+- [ ] **Step 3: Add the `ocr_engine` param + make the shim config-driven**
 
 In `src/smartuibot/core/container.py`:
 
-Add imports near the other `smartuibot` imports:
+Add the `OcrEngine` import next to the existing
+`from smartuibot.vision.ocr.service import OcrService` line (added in
+Task 9):
 ```python
 from smartuibot.vision.ocr.engine import OcrEngine
-from smartuibot.vision.ocr.service import OcrService
 ```
 Add an `ocr_engine` parameter to `AppContainer.__init__` (after
 `input_backend`):
@@ -1324,8 +1374,13 @@ Add an `ocr_engine` parameter to `AppContainer.__init__` (after
         input_backend: InputBackend | None = None,
         ocr_engine: OcrEngine | None = None,
 ```
-Construct `self.ocr` directly after `self.detection = DetectionService(...)`
-is built and before `self.mode = ModeFSM()`:
+Replace the Task-9 shim line
+```python
+        self.ocr = OcrService(engine=None, bus=self.bus, labels=frozenset(),
+                              min_confidence=0.0, enabled=False)
+```
+with the config/engine-driven construction (same location, between
+`self.detection` and `self.mode`):
 ```python
         self.ocr = OcrService(
             engine=ocr_engine, bus=self.bus,
@@ -1333,20 +1388,12 @@ is built and before `self.mode = ModeFSM()`:
             min_confidence=config.ocr.min_confidence,
             enabled=config.ocr.enabled)
 ```
-Add `self.ocr` to the `Watchdog([...])` service list, between
-`self.detection` and `self.decision`:
-```python
-        self.watchdog = Watchdog(
-            [self.capture, self.detection, self.ocr, self.decision,
-             self.action], bus=self.bus)
-```
-In `start()`, add `self.ocr.start()` so the order becomes (reverse
-pipeline): `self.action.start()`, `self.decision.start()`,
-`self.ocr.start()`, `self.detection.start()`, `self.capture.start()`,
-`self.watchdog.start()`. In `stop()`, add `self.ocr.stop()` so the order is
-`self.watchdog.stop()`, `self.mode.disarm()`, `self.capture.stop()`,
-`self.detection.stop()`, `self.ocr.stop()`, `self.decision.stop()`,
-`self.action.stop()`.
+**Do not change** the `Watchdog([...])` list, `start()`, or `stop()` — Task 9
+already placed `self.ocr` correctly there. Verify (read the file) that the
+watchdog list is `[self.capture, self.detection, self.ocr, self.decision,
+self.action]`, `start()` order is action→decision→ocr→detection→capture→
+watchdog, and `stop()` order is watchdog→(disarm)→capture→detection→ocr→
+decision→action. If any of that is missing, add it; otherwise leave it.
 
 - [ ] **Step 4: Add the `_make_ocr_engine` factory in `app.py`**
 
