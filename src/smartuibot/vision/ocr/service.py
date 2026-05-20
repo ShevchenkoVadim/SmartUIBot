@@ -84,6 +84,11 @@ class OcrService(Service):
                     continue
                 if text and conf >= self._min_confidence:
                     out.append(replace(d, text=text, text_confidence=conf))
+                    _log.info(
+                        "detection text: label=%s text=%r conf=%.2f"
+                        " box=[%d,%d,%d,%d]",
+                        d.label, text, conf, d.x1, d.y1, d.x2, d.y2,
+                    )
                 else:
                     out.append(d)
             dets = tuple(out)

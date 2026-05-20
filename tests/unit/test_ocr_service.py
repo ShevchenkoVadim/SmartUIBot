@@ -1,4 +1,7 @@
+import logging
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -103,6 +106,56 @@ def test_recognize_exception_leaves_text_none_and_still_publishes() -> None:
                          detections=(_det("button", (1, 1, 9, 9)),))
     res = _run(svc, bus, ev)
     assert res.detections[0].text is None
+
+
+@contextmanager
+def _capture_ocr_logs() -> Iterator[list[logging.LogRecord]]:
+    # ``smartuibot`` root sets ``propagate=False`` once setup_logging() runs in
+    # another test, which would silence pytest's caplog fixture. Attach our own
+    # handler directly to the OCR logger to be order-independent.
+    records: list[logging.LogRecord] = []
+
+    class _ListHandler(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            records.append(record)
+
+    handler = _ListHandler(level=logging.INFO)
+    logger = logging.getLogger("smartuibot.ocr")
+    prev_level = logger.level
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    try:
+        yield records
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(prev_level)
+
+
+def test_recognized_text_is_logged() -> None:
+    bus = EventBus()
+    svc = OcrService(engine=FakeOcrEngine("Confirm", 0.9), bus=bus,
+                     labels=frozenset({"button"}), min_confidence=0.5,
+                     enabled=True)
+    ev = DetectionsReady(frame=_frame(),
+                         detections=(_det("button", (1, 1, 9, 9)),))
+    with _capture_ocr_logs() as records:
+        _run(svc, bus, ev)
+    messages = [r.getMessage() for r in records]
+    assert any("label=button" in m and "Confirm" in m for m in messages), \
+        f"expected text log, got: {messages}"
+
+
+def test_below_min_confidence_is_not_logged() -> None:
+    bus = EventBus()
+    svc = OcrService(engine=FakeOcrEngine("Confirm", 0.3), bus=bus,
+                     labels=frozenset({"button"}), min_confidence=0.5,
+                     enabled=True)
+    ev = DetectionsReady(frame=_frame(),
+                         detections=(_det("button", (1, 1, 9, 9)),))
+    with _capture_ocr_logs() as records:
+        _run(svc, bus, ev)
+    text_logs = [r for r in records if "detection text:" in r.getMessage()]
+    assert text_logs == []
 
 
 def test_pass_through_when_no_matching_labels() -> None:

@@ -34,8 +34,8 @@ input:
   keystroke_max_s: 0.09
   overshoot_prob: 0.15
 ocr:
-  enabled: false       # opt-in: heavy optional dep + CPU cost
-  labels: [button, popup, dialog]
+  enabled: false        # opt-in: heavy optional dep + CPU cost
+  labels: [button, card, slider_val, my_cards, user_desc, stake]
   lang: en
   min_confidence: 0.5
 behaviors_path: configs/behaviors.yaml

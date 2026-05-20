@@ -1,6 +1,7 @@
 # src/smartuibot/core/container.py
 from __future__ import annotations
 
+import logging
 import random
 from pathlib import Path
 
@@ -24,6 +25,8 @@ from smartuibot.vision.detect.service import DetectionService
 from smartuibot.vision.ocr.engine import OcrEngine
 from smartuibot.vision.ocr.service import OcrService
 
+_log = logging.getLogger("smartuibot.app")
+
 
 class AppContainer:
     """Owns and wires every singleton. Platform adapters are injected so the
@@ -43,6 +46,7 @@ class AppContainer:
             input_backend = NoOpInputBackend()
         self.config = config
         self.bus = EventBus()
+        self._ocr_engine_available = ocr_engine is not None
         setup_logging(level=config.logging.level,
                       log_dir=Path(config.logging.dir), bus=self.bus)
         self.capture = CaptureService(
@@ -86,6 +90,24 @@ class AppContainer:
             bus=self.bus)
 
     def start(self) -> None:
+        _log.info(
+            "SmartUIBot starting: capture=%s @ %d fps, model=%s, ocr=%s",
+            self.config.capture.backend, self.config.capture.target_fps,
+            self.config.detection.model,
+            "on" if self.config.ocr.enabled else "off",
+        )
+        if self.config.ocr.enabled:
+            if self._ocr_engine_available:
+                _log.info(
+                    "OCR engine ready: labels=%s, min_confidence=%.2f",
+                    sorted(self.config.ocr.labels),
+                    self.config.ocr.min_confidence,
+                )
+            else:
+                _log.warning(
+                    "OCR is enabled but engine is unavailable; "
+                    "install with: pip install -e '.[ocr]'"
+                )
         self.action.start()
         self.decision.start()
         self.ocr.start()

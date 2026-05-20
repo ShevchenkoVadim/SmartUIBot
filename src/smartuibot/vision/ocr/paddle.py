@@ -13,18 +13,24 @@ class PaddleOcrEngine:
     def __init__(self, lang: str = "en") -> None:
         from paddleocr import PaddleOCR  # lazy: heavy optional dependency
 
-        self._ocr: Any = PaddleOCR(lang=lang, show_log=False, use_gpu=False)
+        self._ocr: Any = PaddleOCR(lang=lang)
 
     def recognize(self, image: Image) -> tuple[str, float]:
-        result = self._ocr.ocr(image, cls=False)
-        if not result or not result[0]:
+        # PaddleOCR 3.x: predict() returns a list of page-dict results with
+        # `rec_texts` / `rec_scores`. PaddleOCR <=2.x had a different shape;
+        # we no longer support it because pyproject pins paddleocr>=2.7 and
+        # the 3.x line is what installs today.
+        result = self._ocr.predict(image)
+        if not result:
             return "", 0.0
         texts: list[str] = []
         confs: list[float] = []
-        for line in result[0]:
-            txt, conf = line[1]
-            texts.append(str(txt))
-            confs.append(float(conf))
+        for page in result:
+            rec_texts = page.get("rec_texts") or []
+            rec_scores = page.get("rec_scores") or []
+            for t, c in zip(rec_texts, rec_scores, strict=False):
+                texts.append(str(t))
+                confs.append(float(c))
         if not texts:
             return "", 0.0
         return " ".join(texts), min(confs)

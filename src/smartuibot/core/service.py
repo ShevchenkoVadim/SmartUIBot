@@ -1,12 +1,15 @@
 # src/smartuibot/core/service.py
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from abc import ABC, abstractmethod
 
 from smartuibot.core.event_bus import EventBus
 from smartuibot.core.events import ServiceError, StateChanged
+
+_log = logging.getLogger("smartuibot.service")
 
 
 class Service(ABC):
@@ -36,12 +39,14 @@ class Service(ABC):
         self._thread = threading.Thread(target=self._loop, name=self.name, daemon=True)
         self._thread.start()
         self._bus.publish(StateChanged(service=self.name, state="running"))
+        _log.info("service started: %s", self.name)
 
     def stop(self, timeout: float = 2.0) -> None:
         self._stop.set()
         if self._thread is not None:
             self._thread.join(timeout)
         self._bus.publish(StateChanged(service=self.name, state="stopped"))
+        _log.info("service stopped: %s", self.name)
 
     def pause(self) -> None:
         self._paused.set()
