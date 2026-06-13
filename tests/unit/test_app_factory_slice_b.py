@@ -27,7 +27,7 @@ def test_build_real_container_has_mode_and_action(tmp_path: Path, monkeypatch) -
         def reload(self, p: object) -> None: ...
 
     monkeypatch.setattr(app_mod, "_make_detector", lambda cfg: _Stub())
-    monkeypatch.setattr(app_mod, "_make_capture_backend", lambda cfg: __import__(
+    monkeypatch.setattr(app_mod, "_make_capture_backend", lambda cfg, sp: __import__(
         "tests.fakes.capture", fromlist=["FakeCaptureBackend"]).FakeCaptureBackend())
     c = build_real_container(Path("configs/default.yaml"),
                              state_path=tmp_path / "state.yaml")

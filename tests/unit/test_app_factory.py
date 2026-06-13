@@ -34,7 +34,7 @@ def test_build_real_container_constructs_without_starting(
         def reload(self, p: object) -> None: ...
 
     monkeypatch.setattr(app_mod, "_make_detector", lambda cfg: _StubDetector())
-    monkeypatch.setattr(app_mod, "_make_capture_backend", lambda cfg: __import__(
+    monkeypatch.setattr(app_mod, "_make_capture_backend", lambda cfg, sp: __import__(
         "tests.fakes.capture", fromlist=["FakeCaptureBackend"]).FakeCaptureBackend())
     cfg_path = Path("configs/default.yaml")
     container = build_real_container(cfg_path, state_path=tmp_path / "state.yaml")

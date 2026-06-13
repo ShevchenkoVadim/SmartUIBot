@@ -35,8 +35,13 @@ def save_roi(state_path: Path, roi: ROI) -> None:
     Path(state_path).write_text(yaml.safe_dump({"roi": roi.as_dict()}))
 
 
-def _make_capture_backend(config: AppConfig) -> CaptureBackend:
+def _make_capture_backend(config: AppConfig, state_path: Path) -> CaptureBackend:
     name = resolve_backend_name(config.capture.backend)
+    if name == "wayland":
+        from smartuibot.vision.capture.wayland_backend import WaylandPipeWireBackend
+
+        token = Path(state_path).parent / "wayland_restore.token"
+        return WaylandPipeWireBackend(restore_token_path=token)
     if name == "dxcam":
         from smartuibot.vision.capture.mss_backend import MssBackend  # dxcam = later slice
 
@@ -86,7 +91,7 @@ def build_real_container(config_path: Path, state_path: Path) -> AppContainer:
     return AppContainer(
         config=config,
         roi=roi,
-        capture_backend=_make_capture_backend(config),
+        capture_backend=_make_capture_backend(config, state_path),
         detector=_make_detector(config),
         input_backend=_make_input_backend(config),
         ocr_engine=_make_ocr_engine(config),

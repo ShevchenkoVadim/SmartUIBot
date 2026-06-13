@@ -37,7 +37,7 @@ packages = ["smartuibot"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["mss.*", "ultralytics.*", "cv2.*", "pynput.*", "pydirectinput.*", "paddleocr.*", "paddle.*"]
+module = ["mss.*", "ultralytics.*", "cv2.*", "pynput.*", "pydirectinput.*", "paddleocr.*", "paddle.*", "gi.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
