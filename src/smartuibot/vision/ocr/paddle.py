@@ -13,7 +13,9 @@ class PaddleOcrEngine:
     def __init__(self, lang: str = "en") -> None:
         from paddleocr import PaddleOCR  # lazy: heavy optional dependency
 
-        self._ocr: Any = PaddleOCR(lang=lang)
+        # enable_mkldnn=False avoids a paddlepaddle 3.x oneDNN CPU bug
+        # (ConvertPirAttribute2RuntimeAttribute) that crashes inference.
+        self._ocr: Any = PaddleOCR(lang=lang, enable_mkldnn=False)
 
     def recognize(self, image: Image) -> tuple[str, float]:
         # PaddleOCR 3.x: predict() returns a list of page-dict results with
